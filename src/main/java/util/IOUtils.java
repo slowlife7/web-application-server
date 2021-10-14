@@ -1,7 +1,9 @@
 package util;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 
 public class IOUtils {
     /**
@@ -16,5 +18,15 @@ public class IOUtils {
         char[] body = new char[contentLength];
         br.read(body, 0, contentLength);
         return String.copyValueOf(body);
+    }
+
+    /**
+     * Url을 입력받아 지정된 경로의 파일을 Byte형태로 읽는다.
+     * @param url
+     * @return
+     * @throws IOException
+     */
+    public static byte[] ReadFileToByteFromUrl(String url) throws IOException {
+        return Files.readAllBytes(new File("./webapp"+url).toPath());
     }
 }

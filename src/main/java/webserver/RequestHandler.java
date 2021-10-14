@@ -4,11 +4,14 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 
+import db.DataBase;
+import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.nio.ch.IOUtil;
+import util.IOUtils;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -25,89 +28,35 @@ public class RequestHandler extends Thread {
 
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
 
-            //1. Socket에서 읽은 데이터를 한 줄씩 파싱한다.
-            List<String> eachLine = parseEachLine(in);
-            if(!eachLine.isEmpty()) {
+            HttpRequest httpRequest = new HttpRequest();
 
-                byte[] body = "Hi EveryBody".getBytes();
-
-                //2. 첫번째 줄에서 URL을 파싱한다.
-                String url = getURL(eachLine.get(0));
-                log.debug("getURL : {}", url);
-                if (url != null && url.equals("/index.html")) {
-
-                    //3. 추출한 URL 경로의 파일을 읽는다.
-                    body = ReadFileToByteFromUrl(url);
-                }
-
-                DataOutputStream dos = new DataOutputStream(out);
-                response200Header(dos, body.length);
-                responseBody(dos, body);
+            //1. HttpRequest 객체에게 InputStream 파싱을 위임한다.
+            if (!httpRequest.parseHttpRequest(in)) {
+                log.debug("Invalid Http Request");
+                return ;
             }
-        } catch (IOException e) {
-            log.error(e.getMessage());
-        }
-    }
 
-    /**
-     * 입력 받은 InputStream을 한 줄씩 파싱한다.
-     * @param in
-     * @return
-     */
-    private List<String> parseEachLine(InputStream in){
-        List<String> httpHeaders = new ArrayList<>();
+            HttpResponse httpResponse = new HttpResponse();
+            DataOutputStream dos = new DataOutputStream(out);
 
-        try {
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-            String line = bufferedReader.readLine();
-            while(!"".equals(line)){
-                if ( line == null ){
-                    log.debug("read line is null");
+            //2. Http Response를 생성한다.
+            switch(httpRequest.getRequestPath()) {
+                case "/index.html":
+                case "/user/form.html":
+                    httpResponse.end(dos, IOUtils.ReadFileToByteFromUrl(httpRequest.getRequestPath()));
                     break;
-                }
-                log.debug(line);
-                httpHeaders.add(line);
-                line = bufferedReader.readLine();
+                case "/user/create":
+                    Map<String, String> queryString = httpRequest.getQueryString();
+                    User user = new User(queryString.get("userId"), queryString.get("password"), queryString.get("name"), "");
+
+                    log.debug("user : {}", user.toString());
+                    DataBase.addUser(user);
+
+                    httpResponse.end(dos, "회원가입 성공".getBytes(StandardCharsets.UTF_8));
+                    break;
+                default:
+                    httpResponse.end(dos, "Hello wolrd".getBytes(StandardCharsets.UTF_8));
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return httpHeaders;
-    }
-
-    /**
-     * 첫번째 라인에서 URL을 추출한다.
-     * @param line
-     * @return
-     */
-    private String getURL(String line) {
-        String[] startLine = line.split(" ");
-        if (startLine.length != 3) {
-            log.error("Invalid Start Line : {}", line);
-            return null;
-        }
-        return startLine[1];
-    }
-
-    private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
-        try {
-            dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
-            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
-            dos.writeBytes("\r\n");
-        } catch (IOException e) {
-            log.error(e.getMessage());
-        }
-    }
-
-    private byte[] ReadFileToByteFromUrl(String url) throws IOException {
-        return Files.readAllBytes(new File("./webapp"+url).toPath());
-    }
-
-    private void responseBody(DataOutputStream dos, byte[] body) {
-        try {
-            dos.write(body, 0, body.length);
-            dos.flush();
         } catch (IOException e) {
             log.error(e.getMessage());
         }
