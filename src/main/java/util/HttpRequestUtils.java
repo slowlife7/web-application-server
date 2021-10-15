@@ -115,17 +115,15 @@ public class HttpRequestUtils {
         return lines[1];
     }
 
+    public static boolean isQueryString(String url) {
+        return url.indexOf("?") > 0;
+    }
+
     public static String parseRequestPath(String url) {
         int index = url.indexOf("?");
         if (index <0){
             return url;
         }
         return url.substring(0, index);
-    }
-
-    public static Map<String, String> getQueryStringFromURL(String url) {
-        int index = url.indexOf("?");
-        String queryString = url.substring(index+1);
-        return HttpRequestUtils.parseQueryString(queryString);
     }
 }

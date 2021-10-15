@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.HashMap;
 import java.util.Map;
 
 import db.DataBase;
@@ -14,11 +15,14 @@ import util.HttpRequestUtils;
 import util.IOUtils;
 
 import static util.HttpRequestUtils.*;
+import static util.IOUtils.readData;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
 
     private Socket connection;
+    private Map<String, String> headers = new HashMap<>();
+    private String body;
 
     public RequestHandler(Socket connectionSocket) {
         this.connection = connectionSocket;
@@ -32,6 +36,11 @@ public class RequestHandler extends Thread {
 
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             String line = br.readLine();
+            if (line == null) {
+                return;
+            }
+
+            log.info(line);
 
             //1. 첫번째 라인에서 Url 추출
             String url = parseUrl(line);
@@ -40,15 +49,34 @@ public class RequestHandler extends Thread {
                 return;
             }
 
-            //2. url에 따라 분기 처리
-            routePath(url, new DataOutputStream(out));
+            //2. 헤더 파싱
+            parseHeaders(br);
+
+            //3. Content Length 체크
+            String s = headers.get("Content-Length");
+            if ( s==null) {
+                getRoute(url, new DataOutputStream(out));
+                return;
+            }
+
+            int contentLength = Integer.parseInt(headers.get("Content-Length"));
+            postRoute(url, new DataOutputStream(out), readData(br, contentLength));
         }
         catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private void routePath(String url, DataOutputStream dos) throws IOException {
+    private void parseHeaders(BufferedReader br) throws IOException {
+        String line;
+        while ((line = br.readLine() ) != null && !"".equals(line)) {
+            log.info(line);
+            Pair pair = parseHeader(line);
+            headers.put(pair.getKey(), pair.getValue());
+        }
+    }
+
+    private void getRoute(String url, DataOutputStream dos) throws IOException {
         String requestPath = parseRequestPath(url);
         switch (requestPath) {
             case "/index.html":
@@ -57,6 +85,20 @@ public class RequestHandler extends Thread {
                 break;
             case "/user/create":
                 Map<String, String> params = parseQueryString(url);
+                User user = new User(params.get("userId"), params.get("password"), params.get("name"), "");
+                log.info("success /user/create : {}", user);
+                end(dos, "회원가입 성공".getBytes(StandardCharsets.UTF_8));
+                break;
+            default:
+                end(dos,"Hello wolrd".getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    private void postRoute(String url, DataOutputStream dos, String body) throws IOException {
+        String requestPath = parseRequestPath(url);
+        switch (requestPath) {
+            case "/user/create":
+                Map<String, String> params = parseQueryString(body);
                 User user = new User(params.get("userId"), params.get("password"), params.get("name"), "");
                 log.info("success /user/create : {}", user);
                 end(dos, "회원가입 성공".getBytes(StandardCharsets.UTF_8));
