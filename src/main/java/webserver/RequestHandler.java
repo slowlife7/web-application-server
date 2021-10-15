@@ -83,11 +83,12 @@ public class RequestHandler extends Thread {
             case "/user/form.html":
                 end(dos, IOUtils.ReadFileToByteFromUrl(requestPath));
                 break;
+
             case "/user/create":
                 Map<String, String> params = parseQueryString(url);
                 User user = new User(params.get("userId"), params.get("password"), params.get("name"), "");
                 log.info("success /user/create : {}", user);
-                end(dos, "회원가입 성공".getBytes(StandardCharsets.UTF_8));
+                end(dos, "".getBytes(StandardCharsets.UTF_8));
                 break;
             default:
                 end(dos,"Hello wolrd".getBytes(StandardCharsets.UTF_8));
@@ -101,10 +102,21 @@ public class RequestHandler extends Thread {
                 Map<String, String> params = parseQueryString(body);
                 User user = new User(params.get("userId"), params.get("password"), params.get("name"), "");
                 log.info("success /user/create : {}", user);
-                end(dos, "회원가입 성공".getBytes(StandardCharsets.UTF_8));
+                response302Header(dos, "/index.html");
                 break;
             default:
                 end(dos,"Hello wolrd".getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    private void response302Header(DataOutputStream dos, String location) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+            dos.writeBytes("Location: " + location + "\r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
         }
     }
 
