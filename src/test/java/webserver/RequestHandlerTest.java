@@ -6,6 +6,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import util.HttpRequestUtils;
+import util.IOUtils;
 
 import static org.junit.Assert.*;
 
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -169,5 +171,9 @@ public class RequestHandlerTest extends TestCase {
         int index = requestURL.indexOf("?");
         String queryString = requestURL.substring(index+1);
         return HttpRequestUtils.parseQueryString(queryString);
+    }
+
+    @Test
+    void testRoute() {
     }
 }

@@ -1,5 +1,7 @@
 package webserver;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
 
 import java.io.BufferedReader;
@@ -14,6 +16,7 @@ public class HttpRequest {
     private String httpMethod = "";
     private String requestPath = "";
     private Map<String, String> queryString = new HashMap<>();
+    private static final Logger log = LoggerFactory.getLogger(HttpRequest.class);
 
     public String getHttpMethod() {
         return httpMethod;
@@ -33,24 +36,28 @@ public class HttpRequest {
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in, "UTF-8"));
             String line = bufferedReader.readLine();
             if (line == null) {
+                log.debug("line value is null");
                 return false;
             }
 
             String url = getURL(line);
             if (url == null) {
-                System.out.println("url = " + url);
+                log.debug("invalid url");
                 return false;
             }
 
             requestPath = getRequestPath(url);
             queryString = getQueryStringFromURL(url);
 
+            log.debug(url);
             while(!"".equals(line)){
                 if ( line == null ){
                     return true;
                 }
                 line = bufferedReader.readLine();
+                log.debug(line);
             }
+            log.debug("\n");
             return true;
 
         } catch (IOException e) {
@@ -63,7 +70,7 @@ public class HttpRequest {
     private String getURL(String line) {
         String[] startLine = line.split(" ");
         if (startLine.length != 3) {
-            //log.error("Invalid Start Line : {}", line);
+            log.error("Invalid Start Line : {}", line);
             return null;
         }
         return startLine[1];
@@ -72,6 +79,7 @@ public class HttpRequest {
     private  String getRequestPath(String url) {
         int index = url.indexOf("?");
         if (index < 0) {
+            log.debug("no exist querystring");
             return url;
         }
         return url.substring(0, index);
