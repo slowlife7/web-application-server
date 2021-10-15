@@ -10,8 +10,10 @@ import db.DataBase;
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.nio.ch.IOUtil;
+import util.HttpRequestUtils;
 import util.IOUtils;
+
+import static util.HttpRequestUtils.*;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -28,37 +30,48 @@ public class RequestHandler extends Thread {
 
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
 
-            HttpRequest httpRequest = new HttpRequest();
+            BufferedReader br = new BufferedReader(new InputStreamReader(in));
+            String line = br.readLine();
 
-            //1. HttpRequest 객체에게 InputStream 파싱을 위임한다.
-            if (!httpRequest.parseHttpRequest(in)) {
-                log.debug("Invalid Http Request");
-                return ;
+            //1. 첫번째 라인에서 Url 추출
+            String url = parseUrl(line);
+            if (url == null) {
+                log.error("fail to parse Url : {}", url);
+                return;
             }
 
-            HttpResponse httpResponse = new HttpResponse();
-            DataOutputStream dos = new DataOutputStream(out);
-
-            //2. Http Response를 생성한다.
-            switch(httpRequest.getRequestPath()) {
-                case "/index.html":
-                case "/user/form.html":
-                    httpResponse.end(dos, IOUtils.ReadFileToByteFromUrl(httpRequest.getRequestPath()));
-                    break;
-                case "/user/create":
-                    Map<String, String> queryString = httpRequest.getQueryString();
-                    User user = new User(queryString.get("userId"), queryString.get("password"), queryString.get("name"), "");
-
-                    log.debug("user : {}", user.toString());
-                    DataBase.addUser(user);
-
-                    httpResponse.end(dos, "회원가입 성공".getBytes(StandardCharsets.UTF_8));
-                    break;
-                default:
-                    httpResponse.end(dos, "Hello wolrd".getBytes(StandardCharsets.UTF_8));
-            }
-        } catch (IOException e) {
-            log.error(e.getMessage());
+            //2. url에 따라 분기 처리
+            routePath(url, new DataOutputStream(out));
         }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void routePath(String url, DataOutputStream dos) throws IOException {
+        String requestPath = parseRequestPath(url);
+        switch (requestPath) {
+            case "/index.html":
+            case "/user/form.html":
+                end(dos, IOUtils.ReadFileToByteFromUrl(requestPath));
+                break;
+            case "/user/create":
+                Map<String, String> params = parseQueryString(url);
+                User user = new User(params.get("userId"), params.get("password"), params.get("name"), "");
+                log.info("success /user/create : {}", user);
+                end(dos, "회원가입 성공".getBytes(StandardCharsets.UTF_8));
+                break;
+            default:
+                end(dos,"Hello wolrd".getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    public void end(DataOutputStream dos, byte[] body) throws IOException{
+        dos.writeBytes("HTTP/1.1 200 OK \r\n");
+        dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+        dos.writeBytes("Content-Length: " + body.length + "\r\n");
+        dos.writeBytes("\r\n");
+        dos.write(body, 0, body.length);
+        dos.flush();
     }
 }

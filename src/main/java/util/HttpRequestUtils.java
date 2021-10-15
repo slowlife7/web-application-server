@@ -106,4 +106,26 @@ public class HttpRequestUtils {
             return "Pair [key=" + key + ", value=" + value + "]";
         }
     }
+
+    public static String parseUrl(String line) {
+        String[] lines = line.split(" ");
+        if (lines.length != 3) {
+            return null;
+        }
+        return lines[1];
+    }
+
+    public static String parseRequestPath(String url) {
+        int index = url.indexOf("?");
+        if (index <0){
+            return url;
+        }
+        return url.substring(0, index);
+    }
+
+    public static Map<String, String> getQueryStringFromURL(String url) {
+        int index = url.indexOf("?");
+        String queryString = url.substring(index+1);
+        return HttpRequestUtils.parseQueryString(queryString);
+    }
 }
