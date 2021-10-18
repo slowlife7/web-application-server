@@ -67,6 +67,21 @@ public class RequestHandler extends Thread {
                 response.setBody(IOUtils.ReadFileToByteFromUrl(httpRequest.getUrl()));
                 response.end();
                 break;
+            case "/css/styles.css":
+            case "/css/bootstrap.min.css":
+                response.setStatusLine(200, "Ok");
+                response.setHeader("Accept", "text/css, */*;q=0.1");
+                response.setBody(IOUtils.ReadFileToByteFromUrl(httpRequest.getUrl()));
+                response.end();
+                break;
+            case "/js/bootstrap.min.js":
+            case "/js/jquery-2.2.0.min.js":
+            case "/scripts.js":
+                response.setStatusLine(200, "Ok");
+                response.setHeader("Accept", "text/js, */*;q=0.1");
+                response.setBody(IOUtils.ReadFileToByteFromUrl(httpRequest.getUrl()));
+                response.end();
+                break;
 
             case "/user/list":
                 String cookieHeader = httpRequest.header("Cookie");

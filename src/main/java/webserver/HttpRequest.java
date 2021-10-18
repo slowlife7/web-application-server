@@ -1,5 +1,7 @@
 package webserver;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
 
 import java.io.BufferedReader;
@@ -12,6 +14,7 @@ import static util.HttpRequestUtils.parseQueryString;
 import static util.IOUtils.readData;
 
 public class HttpRequest {
+    private static final Logger log = LoggerFactory.getLogger(HttpRequest.class);
     private String method = "";
     private String url = "";
     private Map<String,String> headers = new HashMap<>();
@@ -27,9 +30,11 @@ public class HttpRequest {
         try {
             String line = br.readLine();
             if (!parseStartLine(line)) {
+                log.error("error parse StartLine : {}",line);
                 return false;
             }
 
+            log.info(line);
             parseHeaders();
 
             String value = header("Content-Length");
@@ -47,6 +52,7 @@ public class HttpRequest {
     private void parseHeaders() throws IOException {
         String line;
         while ((line = br.readLine() ) != null && !"".equals(line)) {
+            log.info(line);
             HttpRequestUtils.Pair pair = parseHeader(line);
             headers.put(pair.getKey(), pair.getValue());
         }
