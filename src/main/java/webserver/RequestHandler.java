@@ -9,6 +9,7 @@ import db.DataBase;
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import util.HttpRequestUtils;
 import util.IOUtils;
 import static util.HttpRequestUtils.*;
 
@@ -65,6 +66,18 @@ public class RequestHandler extends Thread {
                 response.setHeader("Content-Type", "text/html;charset=utf-8");
                 response.setBody(IOUtils.ReadFileToByteFromUrl(httpRequest.getUrl()));
                 response.end();
+                break;
+
+            case "/user/list":
+                String cookieHeader = httpRequest.header("Cookie");
+                Map<String, String> cookie = parseCookies(cookieHeader);
+                String logined = cookie.get("logined");
+                if (Boolean.parseBoolean(logined)) {
+                    response.setStatusLine(200, "Ok");
+                    response.setHeader("Content-Type", "text/html;charset=utf-8");
+                    response.setBody(getUserList().getBytes(StandardCharsets.UTF_8));
+                    response.end();
+                }
                 break;
 
             case "/user/create":
@@ -125,5 +138,18 @@ public class RequestHandler extends Thread {
             default:
                 dos.setBody("Hello World".getBytes(StandardCharsets.UTF_8));
         }
+    }
+
+    private String getUserList() {
+        StringBuilder ul = new StringBuilder();
+        ul.append("<ul>");
+
+        DataBase.findAll().forEach( u -> {
+            StringBuilder li = new StringBuilder("<li></li>");
+            li.insert(4, u.getUserId());
+            ul.append(li);
+        });
+        ul.append("</ul>");
+        return ul.toString();
     }
 }
