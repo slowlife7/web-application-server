@@ -1,5 +1,6 @@
 package webserver;
 
+import db.DataBase;
 import junit.framework.TestCase;
 import model.User;
 import org.junit.Assert;
@@ -16,10 +17,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -195,5 +193,24 @@ public class RequestHandlerTest extends TestCase {
     public void testSetStatusLine() {
 
 
+    }
+
+    @Test
+    public void testResponseUserList() {
+        DataBase.addUser(new User("a", "1234","",""));
+        DataBase.addUser(new User("a1", "1234","",""));
+        DataBase.addUser(new User("a2", "1234","",""));
+
+        StringBuilder ul = new StringBuilder();
+        ul.append("<ul>");
+
+        DataBase.findAll().forEach( u -> {
+            StringBuilder li = new StringBuilder("<li></li>");
+            li.insert(4, u.getUserId());
+            ul.append(li);
+        });
+        ul.append("</ul>");
+
+        System.out.println("ul.toString() = " + ul.toString());
     }
 }
