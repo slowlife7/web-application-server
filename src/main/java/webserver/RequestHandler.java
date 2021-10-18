@@ -14,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
 import util.IOUtils;
 
+import javax.xml.crypto.Data;
+
 import static util.HttpRequestUtils.*;
 import static util.IOUtils.readData;
 
@@ -55,12 +57,12 @@ public class RequestHandler extends Thread {
             //3. Content Length 체크
             String s = headers.get("Content-Length");
             if ( s==null) {
-                getRoute(url, new DataOutputStream(out));
+                getRoute(url, new HttpResponse(new DataOutputStream(out)));
                 return;
             }
 
             int contentLength = Integer.parseInt(headers.get("Content-Length"));
-            postRoute(url, new DataOutputStream(out), readData(br, contentLength));
+            postRoute(url, new HttpResponse(new DataOutputStream(out)), readData(br, contentLength));
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -76,56 +78,73 @@ public class RequestHandler extends Thread {
         }
     }
 
-    private void getRoute(String url, DataOutputStream dos) throws IOException {
+    private void getRoute(String url, HttpResponse response) throws IOException {
         String requestPath = parseRequestPath(url);
         switch (requestPath) {
             case "/index.html":
             case "/user/form.html":
-                end(dos, IOUtils.ReadFileToByteFromUrl(requestPath));
+            case "/user/login.html":
+            case "/user/login_failed.html":
+                response.setStatusLine(200, "Ok");
+                response.setHeader("Content-Type", "text/html;charset=utf-8");
+                response.setBody(IOUtils.ReadFileToByteFromUrl(requestPath));
+                response.end();
                 break;
 
             case "/user/create":
                 Map<String, String> params = parseQueryString(url);
                 User user = new User(params.get("userId"), params.get("password"), params.get("name"), "");
                 log.info("success /user/create : {}", user);
-                end(dos, "".getBytes(StandardCharsets.UTF_8));
+                response.setStatusLine(200, "Ok");
+                response.setHeader("Content-Type", "text/html;charset=utf-8");
+                response.end();
                 break;
             default:
-                end(dos,"Hello wolrd".getBytes(StandardCharsets.UTF_8));
+                response.setStatusLine(200, "Ok");
+                response.setHeader("Content-Type", "text/html;charset=utf-8");
+                response.setBody("Hello wolrd".getBytes(StandardCharsets.UTF_8));
+                response.end();
         }
     }
 
-    private void postRoute(String url, DataOutputStream dos, String body) throws IOException {
+    private void postRoute(String url, HttpResponse dos, String body) throws IOException {
         String requestPath = parseRequestPath(url);
+        Map<String, String> params = parseQueryString(body);
+
         switch (requestPath) {
             case "/user/create":
-                Map<String, String> params = parseQueryString(body);
                 User user = new User(params.get("userId"), params.get("password"), params.get("name"), "");
                 log.info("success /user/create : {}", user);
-                response302Header(dos, "/index.html");
+                DataBase.addUser(user);
+                dos.setStatusLine(302, "Found");
+                dos.setHeader("Content-Type", "text/html;charset=utf-8");
+                dos.setHeader("Location", "/index.html");
+                dos.end();
+                break;
+
+            case "/user/login":
+
+                User userId = DataBase.findUserById(params.get("userId"));
+                log.info("/user/login : {}", userId);
+                if (userId == null || !userId
+                        .getPassword().
+                        equals(params.get("password"))) {
+                    dos.setStatusLine(302, "Found");
+                    dos.setHeader("Content-Type", "text/html;charset=utf-8");
+                    dos.setHeader("Location", "/user/login_failed.html");
+                    dos.setHeader("Set-Cookie", "logined=false; Path=/");
+                    dos.end();
+                    break;
+                }
+
+                dos.setStatusLine(302, "Found");
+                dos.setHeader("Content-Type", "text/html;charset=utf-8");
+                dos.setHeader("Location", "/index.html");
+                dos.setHeader("Set-Cookie", "logined=true; Path=/");
+                dos.end();
                 break;
             default:
-                end(dos,"Hello wolrd".getBytes(StandardCharsets.UTF_8));
+                dos.setBody("Hello World".getBytes(StandardCharsets.UTF_8));
         }
-    }
-
-    private void response302Header(DataOutputStream dos, String location) {
-        try {
-            dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
-            dos.writeBytes("Location: " + location + "\r\n");
-            dos.writeBytes("\r\n");
-        } catch (IOException e) {
-            log.error(e.getMessage());
-        }
-    }
-
-    public void end(DataOutputStream dos, byte[] body) throws IOException{
-        dos.writeBytes("HTTP/1.1 200 OK \r\n");
-        dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
-        dos.writeBytes("Content-Length: " + body.length + "\r\n");
-        dos.writeBytes("\r\n");
-        dos.write(body, 0, body.length);
-        dos.flush();
     }
 }

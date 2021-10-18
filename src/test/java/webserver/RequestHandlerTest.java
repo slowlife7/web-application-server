@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 요구사항 1. index.html 응답하기
@@ -169,5 +170,30 @@ public class RequestHandlerTest extends TestCase {
         int index = requestURL.indexOf("?");
         String queryString = requestURL.substring(index+1);
         return HttpRequestUtils.parseQueryString(queryString);
+    }
+
+    @Test
+    public void testSetHeaders() {
+
+        Map<String, String> headers = new HashMap<>();
+        headers.put("Content-Length", "1");
+        headers.put("Location", "http://localhost/index.html");
+
+        String headerString = headers.keySet().stream()
+                .map(s -> s + ": " + headers.get(s) + "\r\n")
+                .collect(Collectors.joining());
+
+        System.out.println("collect.get(0) = " + headerString);
+    }
+
+    @Test
+    public void testSetBody() {
+
+    }
+
+    @Test
+    public void testSetStatusLine() {
+
+
     }
 }
