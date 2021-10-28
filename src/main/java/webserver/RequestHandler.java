@@ -29,25 +29,25 @@ public class RequestHandler extends Thread {
             HttpRequest request = new HttpRequest(in);
             HttpResponse response = new HttpResponse(out);
 
-            routeMap.put("/user/login", new LoginController());
-            routeMap.put("/user/list", new ListUserController());
-            routeMap.put("/user/create", new CreateUserConroller());
-
-            Controller controller = routeMap.get(request.getPath());
+            Controller controller = RequestMapping.getController(request.getPath());
             if(controller == null) {
-                String path = request.getPath();
+                String path = getDefaultPath(request.getPath());
                 log.info("no exist controller");
                 log.info("path : {}",path);
-
-                response.addHeader("Accept", "text/css, */*;q=0.1");
                 response.forward(path);
-
-                return;
+            } else {
+                controller.service(request, response);
             }
-            controller.service(request,response);
         }
         catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private String getDefaultPath(String path) {
+        if(path.equals("/")){
+            return "/index.html";
+        }
+        return path;
     }
 }

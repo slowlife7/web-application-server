@@ -13,9 +13,4 @@ public class CreateUserConroller extends AbstractController{
         DataBase.addUser(user);
         response.sendRedirect("/index.html");
     }
-
-    @Override
-    public void doGet(HttpRequest request, HttpResponse response) throws Exception {
-
-    }
 }

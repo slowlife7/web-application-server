@@ -18,7 +18,7 @@ public class HttpRequestTest {
 
         HttpRequest request = new HttpRequest(in);
 
-        assertEquals("POST", request.getMethod());
+        assertEquals(HttpMethod.POST, request.getMethod());
         assertEquals("/user/create", request.getPath());
         assertEquals("keep-alive", request.getHeader("Connection"));
         assertEquals("javajigi", request.getParameter("userId"));
@@ -31,10 +31,24 @@ public class HttpRequestTest {
 
         HttpRequest request = new HttpRequest(in);
 
-        assertEquals("GET", request.getMethod());
+        assertEquals(HttpMethod.GET, request.getMethod());
         assertEquals("/user/create", request.getPath());
         assertEquals("keep-alive", request.getHeader("Connection"));
         assertEquals("javajigi", request.getParameter("userId"));
+    }
+
+    @Test
+    public void request_GET_Cookie() throws Exception {
+        InputStream in = new FileInputStream(new File(testDirectory +
+                "Http_GET_Cookie.http"));
+
+        HttpRequest request = new HttpRequest(in);
+
+        assertEquals(HttpMethod.GET, request.getMethod());
+        assertEquals("/index.html", request.getPath());
+
+        assertEquals(true, Boolean.parseBoolean(request.getCookies("logined")));
+        assertEquals("/",request.getCookies("path"));
     }
 
 

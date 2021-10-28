@@ -11,17 +11,16 @@ import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 
-import static util.HttpRequestUtils.parseHeader;
-import static util.HttpRequestUtils.parseQueryString;
+import static util.HttpRequestUtils.*;
 import static util.IOUtils.readData;
 
 public class HttpRequest {
     private static final Logger log = LoggerFactory.getLogger(HttpRequest.class);
-    private String method = "";
-    private String url = "";
     private Map<String,String> headers = new HashMap<>();
     private Map<String,String> queryString = new HashMap<>();
+    private Map<String,String> cookies = new HashMap<>();
     private String body = "";
+    private RequestLine requestLine;
 
     private BufferedReader br;
     public HttpRequest(InputStream in)
@@ -34,19 +33,20 @@ public class HttpRequest {
         try {
 
             String line = br.readLine();
-            if (!parseStartLine(line)) {
-                log.error("error parse StartLine : {}",line);
-                return false;
-            }
+            requestLine = new RequestLine(line);
 
             log.info(line);
             parseHeaders();
 
-            String value = getHeader("Content-Length");
-            if (value != null) {
-                int length = Integer.parseInt(value);
-                body = readData(br, length);
+            if(headers.containsKey("Cookie")) {
+                cookies = parseCookies(headers.get("Cookie"));
+            }
+
+            if(getMethod().isPost()) {
+                String body = readData(br, Integer.parseInt(getHeader("Content-Length")));
                 queryString = parseQueryString(body);
+            } else {
+                queryString = requestLine.getParams();
             }
 
         } catch (IOException e) {
@@ -64,42 +64,25 @@ public class HttpRequest {
         }
     }
 
-    private boolean parseStartLine(String line) {
-
-        String[] lines = line.split(" ");
-        if (lines.length != 3) {
-            return false;
-        }
-
-        method = lines[0];
-
-        int index = lines[1].indexOf("?");
-        if (index <0){
-            url = lines[1];
-            return true;
-        }
-        url = lines[1].substring(0, index);
-        queryString = parseQueryString(lines[1].substring(index+1));
-        return true;
-    }
-
     public String getHeader(String key) {
         return headers.get(key);
     }
 
     public String getPath() {
-        return url;
+        return requestLine.getPath();
     }
 
     public String getParameter(String key) {
         return queryString.get(key);
     }
 
-    public String getMethod(){
-        return method;
+    public HttpMethod getMethod(){
+        return requestLine.getMethod();
     }
 
     public String getBody() {
         return body;
     }
+
+    public String getCookies(String key) { return cookies.get(key);}
 }

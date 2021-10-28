@@ -10,27 +10,18 @@ import java.util.Map;
 import static util.HttpRequestUtils.parseCookies;
 
 public class ListUserController extends AbstractController{
-    @Override
-    public void doPost(HttpRequest request, HttpResponse response) throws Exception {
-
-    }
 
     @Override
     public void doGet(HttpRequest request, HttpResponse response) throws Exception {
-        String cookieHeader = request.getHeader("Cookie");
-        if(!isLogined(cookieHeader)) {
+        if(!isLogined(request.getCookies("logined"))) {
             response.sendRedirect("/user/login.html");
         }
-        response.responseBody(getUserList().getBytes(StandardCharsets.UTF_8));
+
+        response.forwardBody(getUserList().getBytes(StandardCharsets.UTF_8));
     }
 
     private boolean isLogined(String line) {
-        Map<String, String> cookie = parseCookies(line);
-        String value = cookie.get("logined");
-        if(value == null) {
-            return false;
-        }
-        return Boolean.parseBoolean(value);
+        return Boolean.parseBoolean(line);
     }
 
     private String getUserList() {

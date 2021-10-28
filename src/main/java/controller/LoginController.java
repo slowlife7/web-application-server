@@ -16,16 +16,10 @@ public class LoginController extends AbstractController{
                 equals(request.getParameter("password"))) {
             response.addHeader("Set-Cookie", "logined=false; Path=/");
             response.sendRedirect("/user/login_failed.html");
-            //dos.end();
             return;
         }
-
         response.addHeader("Set-Cookie", "logined=true; Path=/");
         response.sendRedirect("/index.html");
     }
 
-    @Override
-    public void doGet(HttpRequest request, HttpResponse response) throws Exception {
-
-    }
 }

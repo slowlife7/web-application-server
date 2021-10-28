@@ -12,56 +12,67 @@ import java.util.stream.Collectors;
 import static util.IOUtils.ReadFileToByteFromUrl;
 
 public class HttpResponse {
-    private StringBuilder sb = new StringBuilder();
-    private String statusLine = "";
     private Map<String, String> headers = new HashMap<>();
-    private OutputStream dos;
+    private DataOutputStream dos;
     private static final Logger log = LoggerFactory.getLogger(HttpResponse.class);
     public HttpResponse(OutputStream dos) {
-        this.dos = dos;
-    }
-
-    public void setStatusLine(int status, String description) {
-        statusLine = "HTTP/1.1 " + status + " " + description + "\r\n";
+        this.dos = new DataOutputStream(dos);
     }
 
     public void addHeader(String key, String value) {
         headers.put(key, value);
     }
 
-    private byte[] processHeaders() {
-        sb.append(statusLine);
-        sb.append(headers.keySet().stream()
-                .map(s -> s + ": " + headers.get(s) + "\r\n")
-                .collect(Collectors.joining()));
-        sb.append("\r\n");
-        return sb.substring(0).getBytes(StandardCharsets.UTF_8);
+    public void responseHeader(int status, String des) {
+        try {
+            dos.writeBytes("HTTP/1.1 " + status + " " + des + "\r\n");
+            processHeaders();
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
     }
 
-    public void responseBody(byte[] body) throws Exception {
-        setStatusLine(200, "ok");
-        addHeader("Content-Type", "text/html");
+    private void processHeaders(){
+        headers.keySet().stream().forEach( key -> {
+            try {
+                dos.writeBytes(key + ": " + headers.get(key) + "\r\n");
+            } catch (IOException e) {
+                log.error(e.getMessage());
+            }
+        });
+    }
+
+    private void responseBody(byte[] body) throws Exception {
+        dos.write(body, 0, body.length);
+        dos.writeBytes("\r\n");
+        dos.flush();
+    }
+
+    public void forward(String url) throws Exception{
+        byte[] body = ReadFileToByteFromUrl(url);
+        if(url.endsWith(".css")) {
+            addHeader("Content-Type", "text/css");
+        } else if(url.endsWith(".js")) {
+            addHeader("Content-Type", "application/javascript");
+        } else {
+            addHeader("Content-Type", "text/html;charset=utf-8");
+        }
+
         addHeader("Content-Length", String.valueOf(body.length));
-
-        dos.write(processHeaders());
-        dos.write(body);
+        responseHeader(200, "ok");
+        responseBody(body);
     }
 
-    public void forward(String fileName) throws Exception{
-        setStatusLine(200, "ok");
-        //addHeader("Content-Type", "text/html");
-        byte[] bytes = ReadFileToByteFromUrl(fileName);
-        log.info("length: {}", bytes.length);
-        addHeader("Content-Length", String.valueOf(bytes.length));
-
-        dos.write(processHeaders());
-        dos.write(bytes);
+    public void forwardBody(byte[] body) throws Exception{
+        addHeader("Content-Length", String.valueOf(body.length));
+        responseHeader(200, "ok");
+        responseBody(body);
     }
 
     public void sendRedirect(String fileName) throws Exception {
-        setStatusLine(302, "found");
         addHeader("Content-Type", "text/html");
         addHeader("Location", fileName);
-        dos.write(processHeaders());
+        responseHeader(302, "found");
     }
 }
