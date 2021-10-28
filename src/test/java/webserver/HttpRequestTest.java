@@ -5,50 +5,37 @@ import org.junit.Test;
 
 import java.io.*;
 
-public class HttpRequestTest extends TestCase {
+import static junit.framework.TestCase.assertEquals;
+
+public class HttpRequestTest {
+
+    private String testDirectory = "./src/test/resources/";
+
     @Test
-    public void testParse_header_성공() {
-        StringBuffer stringBuffer = new StringBuffer();
-        stringBuffer.append("GET /index.html HTTP/1.1\r\n");
-        stringBuffer.append("Host: localhost:8080\r\n");
-        stringBuffer.append("Connection: keep-alive\r\n");
-        stringBuffer.append("Accept: */*\r\n");
-        stringBuffer.append("\r\n");
+    public void request_POST() throws Exception {
+        InputStream in = new FileInputStream(new File(testDirectory +
+                "Http_POST.http"));
 
-        byte[] bytes = stringBuffer.toString().getBytes();
-        InputStream inputStream = new ByteArrayInputStream(bytes);
-        InputStreamReader ir = new InputStreamReader(inputStream);
+        HttpRequest request = new HttpRequest(in);
 
-        HttpRequest httpRequest = new HttpRequest(new BufferedReader(ir));
-        assertTrue(httpRequest.parse());
-        assertEquals(httpRequest.header("Connection"), "keep-alive");
-    }
-    @Test
-    public void testParse_StartLine_성공() {
-        StringBuffer stringBuffer = new StringBuffer();
-        stringBuffer.append("GET /index.html HTTP/1.1\r\n");
-
-        byte[] bytes = stringBuffer.toString().getBytes();
-        InputStream inputStream = new ByteArrayInputStream(bytes);
-        InputStreamReader ir = new InputStreamReader(inputStream);
-
-        HttpRequest httpRequest = new HttpRequest(new BufferedReader(ir));
-
-        assertTrue(httpRequest.parse());
+        assertEquals("POST", request.getMethod());
+        assertEquals("/user/create", request.getPath());
+        assertEquals("keep-alive", request.getHeader("Connection"));
+        assertEquals("javajigi", request.getParameter("userId"));
     }
 
     @Test
-    public void testParse_StartLine_실패() {
-        StringBuffer stringBuffer = new StringBuffer();
-        stringBuffer.append("/index.html HTTP/1.1\r\n");
+    public void request_GET() throws Exception {
+        InputStream in = new FileInputStream(new File(testDirectory +
+                "Http_GET.http"));
 
-        byte[] bytes = stringBuffer.toString().getBytes();
-        InputStream inputStream = new ByteArrayInputStream(bytes);
-        InputStreamReader ir = new InputStreamReader(inputStream);
+        HttpRequest request = new HttpRequest(in);
 
-        HttpRequest httpRequest = new HttpRequest(new BufferedReader(ir));
-
-        assertFalse(httpRequest.parse());
+        assertEquals("GET", request.getMethod());
+        assertEquals("/user/create", request.getPath());
+        assertEquals("keep-alive", request.getHeader("Connection"));
+        assertEquals("javajigi", request.getParameter("userId"));
     }
+
 
 }

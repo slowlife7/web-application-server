@@ -3,40 +3,38 @@ package webserver;
 import junit.framework.TestCase;
 import org.junit.Test;
 
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 
-public class HttpResponseTest extends TestCase {
+import static org.junit.Assert.assertEquals;
 
+public class HttpResponseTest {
+
+    private String testDirectory = "./src/test/resources/";
 
     @Test
-    public void testSetStatusLine(){
-        HttpResponse httpResponse = new HttpResponse();
-        httpResponse.setStatusLine(200, "OK");
-
-        String request = httpResponse.write();
-
-        assertEquals("HTTP/1.1 200 OK\r\n", request);
+    public void responseForward() throws Exception {
+        HttpResponse response = new HttpResponse(createOutputStream("Http_Forward.http"));
+        response.forward("/index.html");
     }
 
     @Test
-    public void testSetHeader() {
-        HttpResponse httpResponse = new HttpResponse();
-        httpResponse.setHeader("Content-Length", "1");
-        httpResponse.setHeader("Location", "http://localhost/indx.html");
-
-        String request = httpResponse.write();
-        assertEquals("Content-Length: 1\r\nLocation: http://localhost/indx.html\r\n", request);
+    public void responseRedirect() throws Exception {
+        HttpResponse response =
+                new HttpResponse(createOutputStream("Http_Redirect.http"));
+        response.sendRedirect("/index.html");
     }
 
     @Test
-    public void testSetBody() {
-        HttpResponse httpResponse = new HttpResponse();
-        httpResponse.setHeader("Location", "http://localhost/indx.html");
-
-        httpResponse.setBody("hello!!".getBytes(StandardCharsets.UTF_8));
-
-        String request = httpResponse.write();
-        assertEquals("Content-Length: 7\r\nLocation: http://localhost/indx.html\r\n\r\nhello!!", request);
+    public void responseCookies() throws Exception {
+        HttpResponse response =
+                new HttpResponse(createOutputStream("Http_Cookie.http"));
+        response.addHeader("Set-Cookie", "logined=true");
+        response.sendRedirect("/index.html");
     }
 
+    private OutputStream createOutputStream(String fileName)
+        throws FileNotFoundException {
+        return new FileOutputStream(new File(testDirectory + fileName));
+    }
 }

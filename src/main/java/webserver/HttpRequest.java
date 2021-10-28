@@ -6,6 +6,8 @@ import util.HttpRequestUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,12 +24,15 @@ public class HttpRequest {
     private String body = "";
 
     private BufferedReader br;
-    public HttpRequest(BufferedReader br) {
-        this.br = br;
+    public HttpRequest(InputStream in)
+    {
+        this.br = new BufferedReader(new InputStreamReader(in));
+        parse();
     }
 
-    public boolean parse(){
+    private boolean parse(){
         try {
+
             String line = br.readLine();
             if (!parseStartLine(line)) {
                 log.error("error parse StartLine : {}",line);
@@ -37,10 +42,11 @@ public class HttpRequest {
             log.info(line);
             parseHeaders();
 
-            String value = header("Content-Length");
+            String value = getHeader("Content-Length");
             if (value != null) {
                 int length = Integer.parseInt(value);
                 body = readData(br, length);
+                queryString = parseQueryString(body);
             }
 
         } catch (IOException e) {
@@ -77,15 +83,15 @@ public class HttpRequest {
         return true;
     }
 
-    public String header(String key) {
+    public String getHeader(String key) {
         return headers.get(key);
     }
 
-    public String getUrl() {
+    public String getPath() {
         return url;
     }
 
-    public String queryString(String key) {
+    public String getParameter(String key) {
         return queryString.get(key);
     }
 
